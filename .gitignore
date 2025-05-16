@@ -47,3 +47,10 @@ coverage/
 # Personal project files
 console.txt
 portfolio-redesign-guide.md
+credentials.json
+.history/
+
+# Large media files
+*.mp4
+*.mov
+*.webm

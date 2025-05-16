@@ -1,0 +1,1158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0048)https://graphics.cs.niu.edu/csci490j/rd_doc.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+   <style type="text/css">
+   body { background: #FFFFFF; color: #000000;}
+   h1 { text-aligh: center;}
+   </style>
+   <title>RD Data File Format</title>
+</head>
+<body>
+
+<center><h1>Rendering Description (RD) Data File Format -- V2.0
+</h1></center>
+
+<hr width="100%">
+
+<p>This document describes the RD (rendering description) data file
+format.  The format is meant to be a human readable format for the
+exchange of 3D data for scene modeling and rendering.  The style and
+many commands are inspired partly by the RenderMan RIB format, partly
+by OpenGL.  But there are some significant extensions, restrictions,
+and modifications.</p>
+
+<h2>Data Description</h2> 
+
+<p>The commands in the RD format are all
+single words without spaces. The commands are case sensitive.
+Commands may or may not take arguments.  Some commands, particularly
+the ones for point sets, line sets and polygon sets may have a
+variable number of arguments.</p>
+
+<p>Command arguments may be boolean values, integers, floating point
+values and strings.  Boolean values are represented by unquoted text
+strings.  The logical value of true can be represented by any of the
+values <code>true</code>, <code>yes</code>, <code>on</code>, or
+<code>1</code>.  The logical value of false can be represented by any
+of the values <code>false</code>, <code>no</code>, <code>off</code>, or
+<code>0</code>.  Integers and floating point values follow the
+same conventions used for C/C++ style numeric constants.  Strings in
+the file used as command arguments are enclosed in double quotation
+characters.  Single quotes are not used.  Strings may have spaces in
+them unless otherwise specified.</p>
+
+<h2>General Commands</h2>
+
+<h3>Comments</h3>
+The RD format supports comments in the data file.  Comments are
+placed by using the <code>#</code> character.  Everything
+following the character up through the end of the line is
+considered a comment.  
+
+<h3><code>Display</code> &nbsp;&nbsp;&nbsp;
+<var>name</var> &nbsp;&nbsp;
+<var>type</var> &nbsp;&nbsp;
+<var>mode</var>
+</h3>
+
+
+The <code>Display</code> command describes the type of device to
+which the image(s) will be rendered. The command takes 3 arguments
+which must be strings, each enclosed in quotes. 
+
+<p>The <var>name</var> string may put a title
+on a window, or be used to name a file.</p>
+
+<p>The <var>type</var> string describes which device the images
+will be rendered to.  Each <var>type</var> string has one or more
+<var>mode</var> strings associated with it which describe
+further rendering options for the device.  Not all modes are
+valid for all types.  A list of registered type and mode
+combinations is given below.</p>
+
+<p>The currently known display types are:
+</p><ul>
+  <li><code>"Screen"</code> - Renders to the screen.
+  The <var>name</var> argument is used as a title for the display window.
+  
+  <p> This display type has three modes:
+  </p><ul>
+    <li><code>"rgbsingle"</code> - color display in
+    single buffered mode.  The display is updated after each pixel.</li>
+    
+    <li><code>"rgbobject"</code> - color display in
+    object buffered mode.  The display is updated after each
+    scene primitive.</li>
+    
+    <li><code>"rgbdouble"</code> - color display in
+    double buffered mode.  The display is updated after each
+    frame, or at the end of the scene file.</li>
+  </ul><p></p></li>
+  
+  <li><code>"PNM"</code> - Renders to disk as a
+  PBMPlus image file.  The <var>name</var> argument is used to form
+  a name for the image file.  The frame number and a
+  <code>.ppm</code> extension are added to the name before the
+  file is written.
+  
+  <p> This display type has only one mode:
+  </p><ul>
+    <li><code>"rgb"</code> - output as a binary PPM
+    file.</li>
+  </ul><p></p></li>
+</ul><p></p>
+
+
+<h3><code>Format</code> &nbsp;&nbsp;&nbsp;
+<var>width</var> &nbsp;&nbsp;
+<var>height</var> 
+</h3>
+This command takes two integer arguments specifying the size of the
+display in pixels.  This command can only be used outside a world
+block (see below).  Typically it is given shortly after a
+<code>Display</code> command.  If this command is not given in a RD
+file, a default size of 640 pixels wide by 480 pixels high is used.
+
+<h2>File Structuring Elements</h2>
+Each RD file describes one or more images to be rendered to the output
+device.  Multiple images are often used as the multiple frames of an
+animation, or as multiple views of a static scene to be used for image
+based modeling.
+
+<p>The commands for a particular frame constitute a <dfn>frame
+block</dfn>.  Some commands must be given inside a frame block.
+Others must be given outside a frame block.</p>
+
+<p> Each frame has associated with it a frame number.  Frames are
+rendered in the order that they are encountered in the RD file.  They
+are not rendered in order by frame number.  This makes it possible to
+do out of order rendering to disk, which is useful for long animation
+sequences.</p>
+
+<p> Within each frame, some rendering parameters can be altered before
+the rendering actually begins.  These include camera placement, change
+of shading parameters, lighting and so forth.  But when rendering
+begins, these parameters must be fixed.  Depending on the style of
+renderer used, rendering can begin with the first object placed in the
+scene.  (Other renderers may wait until all objects are placed in the
+scene before starting to render the image.)  The concept of a
+<dfn>world block</dfn> is used to isolate object placement and
+description from the attributes which must be fixed when rendering
+begins.</p>
+
+<p> Each frame block must contain one and only one world block.  World
+blocks must not be nested.</p>
+
+<p> A frame block is optional for rendering scenes consisting of one
+image.  In such a scene the world block suffices to describe the
+frame.  The frame block is assumed in this case, with a frame number
+of one (also assumed).</p>
+
+<p> In an animation, it is common to have objects persist across
+multiple frames.  In such a case, the repeated description of scence
+objects can take up a lot of file space and is prone to error if
+edited by hand.  For this purpose the <dfn>object block</dfn> was
+created.  An object block exists outside any frame block and is
+usually found at the beginning of a file.  Multiple object blocks may
+exist, but they must not be nested.  Each object block contains
+commands describing the placement of geometric primitives as well as
+possible changes of shading.  Each object is assigned a name which is
+used to refer to the object.</p>
+
+<p> Objects that have been defined in an object block can be used
+inside a world block or inside other object blocks through the use of
+object instances.  Commands in an object block are not executed at the
+time the block is defined, but are executed at the time that the
+object is instanced.  Object blocks are <em>not</em> recursive.  An
+object instance for a particular object may not occur as part of the
+definition of that same object.</p>
+
+
+<h3><code>FrameBegin</code> &nbsp;&nbsp;&nbsp;
+<var>frame_no</var>
+</h3>
+
+The <code>FrameBegin</code> command declares the start of a frame
+block.  The command takes one integer argument which is used as the
+frame number associated with the frame.  The frame number is often
+ignored for images that are directed to the screen.  For images sent
+to files, the frame number is often used to create a unique file name
+for the frame.
+
+<h3><code>FrameEnd</code></h3>
+The <code>FrameEnd</code> command is used to indicate the end of a
+frame block.  Frame blocks may not be nested.
+
+
+<h3><code>WorldBegin</code></h3>
+The <code>WorldBegin</code> command starts a world block.  It must
+occur either inside a frame block or stand alone if only one frame is
+to be rendered.
+
+<h3><code>WorldEnd</code></h3>
+This command ends a world block.
+
+<h3><code>ObjectBegin</code>&nbsp;&nbsp;
+<var>[n_params]</var>
+<var>object_name</var></h3>
+
+Starts the beginning of an (optionally) parameterized object block,
+which must be placed outside all frame and world blocks.  Takes one or
+two arguments.  The first, which is optional is a non-negative integer
+specifying the number of parameters that are supplied to the object.
+If not given, the number of parameters defaults to zero. The second
+parameter, a required string, must be in quotes, which is the name
+associated with the object.  The only commands allowed inside an
+object block are geometry commands, geometric transformations and
+shading commands.
+
+<h3><code>ObjectEnd</code></h3>
+Indicates the end of an object block.
+
+<h3><code>ObjectInstance</code>&nbsp;&nbsp;&nbsp;
+<var>object_name</var>
+<var>[parameters]</var>
+</h3>
+This command executes all of the commands inside the object block with
+the specified object name.  <code>ObjectInstance</code> commands can
+occur inside world blocks or inside object blocks. The parameters
+given must match the definition of the object given in the
+corresponding <code>ObjectBegin</code> block.
+
+<h3>Object Block Parameters</h3>
+Within an object block, the parameters passed in are referred to by
+the parameter number, preceded by a dollar sign, i.e. <code>$1</code>,
+<code>$47</code>, etc.  Parameters are single valued, but may be
+floating point values or strings.  Parameters to an object block are
+numbered starting with 1.  A parameter may be used (in theory),
+anywhere in the object block that its value would be acceptable.
+
+<h2 id="SecDrawingAttributes">Drawing Attributes</h2>
+The RD format supports various ways of changing the appearance of
+objects and images.  The most important of these have to do with
+color.  Colors in the RD format are specified by three floating point
+numbers representing the amount of red, green, and blue respectively
+in the color.  Colors are usually given in the range 0.0-1.0, giving a
+measure of device independence.
+
+<h3><code>Background</code> &nbsp;&nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var>
+</h3>
+This command takes three floating point values in the range of 0.0-1.0
+as a combination of red, green and blue to set the background color of
+the image.  It makes no sense to change the background color during
+the middle of rendering an image. Consequently the
+<code>Background</code> command is allowed only outside a world
+block.  If this command does not exist in the file, a default
+background color of black is used.
+
+<h3><code>Color</code> &nbsp;&nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var>
+</h3>
+This command sets the <dfn>current drawing color</dfn> which will be
+used as the color of all successive objects until changed with another
+<code>Color</code> command.  Valid color values are in the range of
+0.0 to 1.0 for each component of the color.  The default drawing color
+is white. The drawing color can be changed both inside and outside a
+world block.
+
+<h3><code>Opacity</code> &nbsp;&nbsp;&nbsp;
+<var>alpha</var>
+</h3>
+This command sets the <dfn>current opacity</dfn> which will be used as
+the opacity of all successive objects until changed with another
+<code>Opacity</code> command.  Valid opacities are in the range [0.0,
+1.0], with 0.0 being fully transparent and 1.0 being fully opaque. The
+default opacity is 1.0. The opacity can be changed both inside and
+outside a world block.
+
+<h2>Options</h2>
+Options allow a scene file to set miscellaneous options associated
+with the rendering.  Options are usually specific to a particular
+rendering engine.  Each option has a name which is a quoted string as
+described above.  The value associated with the option depends on its
+type, so several option types, listed below, have been provided.  Some
+examples of each option are also provided, but there is no guarantee
+that these options exist for a given rendering engine.
+
+<h3><code>OptionArray</code> &nbsp;&nbsp;&nbsp;
+<var>name</var> &nbsp;&nbsp;
+<var>size</var> &nbsp;&nbsp;
+<var>values...</var>
+</h3>
+This option allows a list of numbers to be provided.  After the name
+of the option, an integer size is given, followed by the list of values.
+
+<h3><code>OptionBool</code> &nbsp;&nbsp;&nbsp;
+<var>name</var> &nbsp;&nbsp;
+<var>value</var>
+</h3>
+The value is a boolean value, as described above.
+
+<p> Some common boolean options are listed below.</p>
+
+<h4><code>Interpolate</code></h4>
+
+This option determines whether interpolated values are used in
+lighting calculations.  The most important values that are
+interpolated are vertex normals and vertex colors. The default value of the
+interpolation flag is <code>on</code>.
+
+<h4><code>Wireframe</code></h4>
+This option determines whether primitives are rendered as solid
+surfaces or as wireframe objects.  The default value of the wireframe
+flag is <code>off</code>.
+
+<h3><code>OptionList</code> &nbsp;&nbsp;&nbsp;
+<var>name</var> &nbsp;&nbsp;
+<var>size</var> &nbsp;&nbsp;
+<var>values...</var>
+</h3>
+
+This option allows a list of quoted strings to be provided as values.
+After the name of the option, the integer number of values is given,
+then the quoted string values themselves.
+
+<h3><code>OptionReal</code> &nbsp;&nbsp;&nbsp;
+<var>name</var> &nbsp;&nbsp;
+<var>value</var>
+</h3>
+The value of this option is a single numeric value.  Some possible
+numeric options are
+
+<h4><code>Sides</code></h4>
+Determines the number of polygonal sections into which curved objects are
+broken down.
+
+<h3><code>OptionString</code> &nbsp;&nbsp;&nbsp;
+<var>name</var> &nbsp;&nbsp;
+<var>value</var>
+</h3>
+The value of this option is a single quoted string as described above.
+
+<h2>Camera Specification</h2>
+Camera commands specify a view of the scene being created.  They must
+occur outside a world block.
+
+<h3><code>CameraAt</code>&nbsp;&nbsp;&nbsp;
+<var>x</var> &nbsp;&nbsp;
+<var>y</var> &nbsp;&nbsp;
+<var>z</var>
+</h3>
+Specifies the point in world coordinates that the camera is looking
+at.  This point will appear in the center of the image.  The default
+value is the point (0, 0, -1), so that combined with the default
+<code>CameraEye</code> below, the camera is looking down the negative
+z axis.
+
+<h3><code>CameraEye</code> &nbsp;&nbsp;&nbsp;
+<var>x</var> &nbsp;&nbsp;
+<var>y</var> &nbsp;&nbsp;
+<var>z</var>
+</h3>
+Specifies the point in world coordinates that the camera is looking
+from.  This point is also known as the <dfn>eyepoint</dfn>.  The
+default value is the point (0, 0, 0).
+
+<h3><code>CameraFOV</code> &nbsp;&nbsp;&nbsp;
+<var>angle</var>
+</h3>
+This command sets the field of view of the camera.  It is specified in
+degrees and represents the vertical field of view.  The default field
+of view is 90 degrees, which is unnaturally large.  Small fields of
+view act like a zoom lens.  Large fields of view act like a wide angle
+lens and increase the distortion in the image.  Typical fields of view
+range from 20 to 60 degrees.
+
+<h3><code>CameraUp</code>&nbsp;&nbsp;&nbsp;
+<var>x</var> &nbsp;&nbsp;
+<var>y</var> &nbsp;&nbsp;
+<var>z</var>
+</h3>
+Specifies a vector in world coordinates that points in a direction
+that will be seen as straight up in the image.  The default value is
+the vector (0, 1, 0), i.e. the y axis is up.  The default values of
+<code>CameraEye</code>, <code>CameraAt</code>, and
+<code>CameraUp</code> place the x and y world axes on the screen with
+the origin at the screen center and the axes in the traditional 2D
+Cartesian orientation.
+
+<h3><code>Clipping</code> &nbsp;&nbsp;&nbsp;
+<var>near</var> &nbsp;&nbsp;
+<var>far</var> &nbsp;&nbsp;
+</h3>
+This command is followed by the depths of the near and far clipping
+planes.  Depths are distances from the eye in camera coordinates.
+Default values are 1.0 for the near clipping plane and 1.0e+09 for the
+far clipping plane.  As a general rule of thumb, clipping plane values
+should bound the scene as tightly as possible.  This improves the
+effectvie resolution of any depth buffers used and the final quality
+of the image.
+
+<h2>Geometry Commands</h2>
+All geometry commands must be placed inside a world block or an object
+block.
+
+<h3>Vertex Types</h3>
+Some of the commands below dealing with sets of vertices allow the
+specification of a vertex type.  The vertex type allows different
+attributes to be specified for an object on a per vertex basis.  The
+vertex type is given as a quoted string consisting of characters from
+a limited set of attribute specifiers.  All vertex attributes except
+the position (<code>"P"</code>) are optional.
+
+<p> The known vertex type attributes are:
+</p><dl>
+  <dt><code>P</code></dt><dd> Position.  Has three floating point
+    components, x, y, and z.</dd>
+
+  <dt><code>D</code> or <code>N</code></dt><dd> Direction vector.
+    Has three floating point components, x, y, and z.  For two dimensional
+    primitives, i.e., surfaces, this is the surface normal vector. For one
+    dimensional primitives, i.e., <code>LineSet</code>, and
+    <code>Curve</code>, this component represents the tangent
+    vector of the primitive.</dd>
+  <dt><code>C</code></dt><dd> Surface color.  Has three floating
+    point components, r, g, and b representing the amount of red,
+    green, and blue respectively.  The components should have
+    values between 0.0 and 1.0 inclusive.</dd>
+  <dt><code>w</code></dt><dd> Weight.  Has one floating point value.  Used
+    to provide weight values for <code>Curve</code>s and
+    <code>Patch</code>es. Almost always found in conjunction with
+    vertex type <code>P</code>.</dd>
+  <dt><code>T</code></dt><dd> Texture. For surfaces, the texture is
+    represented as two floating point components, s
+    and t, which are the horizontal and vertical components of the
+    texture. For curves, the texture is a single floating point
+    component.</dd>
+  <dt><code>O</code></dt><dd> Opacity. A single floating point value
+    with 0.0 being totally transparent and 1.0 being totally opaque.</dd>
+</dl><p></p>
+
+<h3>Angular Extents</h3>
+Some of the solid objects below allow angular extents.  This is
+primarily for objects that are produced by sweeps around an axis.
+All angular extents are in degrees and proceed clockwise around
+the z axis.  Unless otherwise specified, all extents start at the
+positive x axis.  For example, an angular extent of 180 would produce
+half of the swept object; an angular extent of 360 degrees, the entire
+object.
+
+
+<h3><code>Point</code> &nbsp;&nbsp;&nbsp;
+<var>x</var> &nbsp;&nbsp;
+<var>y</var> &nbsp;&nbsp;
+<var>z</var>
+</h3>
+This command is followed by the x, y, and z coordinates of the
+point.  The color of the point is determined by the current
+drawing color (See the section on drawing attributes).
+
+<h3><code>PointSet</code></h3>
+Followed by a vertex type, and the number of points in the set.
+The listed attributes follow for each point in the order
+specified.
+<h4>Example</h4>
+<pre>    PointSet "PC"
+    3 # particles - x y z  r g b
+     3.5 4.5  2.0  0.0 0.5 0.5 # medium cyan
+    -1.0 2.5 -3.4  1.0 0.5 0.0 # orange
+     0.0 1.0  1.0  0.0 0.0 0.0 # black
+    </pre>
+
+<h3><code>Line</code>&nbsp;&nbsp;&nbsp;
+<var>x<sub>1</sub></var> &nbsp;&nbsp;
+<var>y<sub>1</sub></var> &nbsp;&nbsp;
+<var>z<sub>1</sub></var> &nbsp;&nbsp;
+<var>x<sub>2</sub></var> &nbsp;&nbsp;
+<var>y<sub>2</sub></var> &nbsp;&nbsp;
+<var>z<sub>2</sub></var>
+</h3>
+Followed by the x, y, z of the first endpoint and the x, y, z of
+the second endpoint.  The color of the line is determined by the
+current drawing color.
+
+<h3><code>LineSet</code></h3>
+Followed by a vertex type, then the number of vertices and line
+sequences (polylines) in the object.  The given attributes follow for
+each vertex in the order specified in the vertex type. After the
+vertex list, a list of polylines follows.  Each polyline is given as a
+list of indices into the list of attributed vertices.  The list of
+vertices for a given polyline is followed by the value -1 to indicate
+the end of the vertices for that polyline.  The number of vertices per
+polyline is arbitrary and may change from polyline to polyline.
+
+
+<h4>Example 1</h4>
+<pre>      LineSet "PC"
+      8 6 # Wireframe color cube - x y z  r g b
+       -1.0 -1.0 -1.0 0.0 0.0 0.0  # Black
+        1.0 -1.0 -1.0 1.0 0.0 0.0  # Red
+       -1.0  1.0 -1.0 0.0 1.0 0.0  # Green
+        1.0  1.0 -1.0 1.0 1.0 0.0  # Yellow
+       -1.0 -1.0  1.0 0.0 0.0 1.0  # Blue
+        1.0 -1.0  1.0 1.0 0.0 1.0  # Magenta
+       -1.0  1.0  1.0 0.0 1.0 1.0  # Cyan
+        1.0  1.0  1.0 1.0 1.0 1.0  # White
+
+      0 1 5 7 -1 # Black Red Magenta White
+      0 2 3 7 -1 # Black Green Yellow White
+      0 4 6 7 -1 # Black Blue Cyan White
+      1 3 -1     # Red Yelow
+      2 6 -1     # Green Cyan
+      3 5 -1     # Blue Magenta
+</pre>
+
+<h4>Example 2</h4>
+<pre>      LineSet "PC"
+      8 6 # Wireframe color cube - x y z  r g b
+       -1.0 -1.0 -1.0 0.0 0.0 0.0  # Black
+        1.0 -1.0 -1.0 1.0 0.0 0.0  # Red
+       -1.0  1.0 -1.0 0.0 1.0 0.0  # Green
+        1.0  1.0 -1.0 1.0 1.0 0.0  # Yellow
+       -1.0 -1.0  1.0 0.0 0.0 1.0  # Blue
+        1.0 -1.0  1.0 1.0 0.0 1.0  # Magenta
+       -1.0  1.0  1.0 0.0 1.0 1.0  # Cyan
+        1.0  1.0  1.0 1.0 1.0 1.0  # White
+
+      0 2 3 1 -1 # Red Green Yellow face
+      0 1 5 4 -1 # Red Blue Magenta face
+      1 3 7 5 -1 # Red Yellow Magenta face
+      3 2 6 7 -1 # Yellow Green Cyan face
+      2 0 4 6 -1 # Green Blue Cyan face
+      4 5 7 6 -1 # Blue Magenta Cyan face
+</pre>
+
+
+<h3><code>Circle</code> &nbsp;&nbsp;&nbsp;
+<var>x</var> &nbsp;&nbsp;
+<var>y</var> &nbsp;&nbsp;
+<var>z</var> &nbsp;&nbsp;
+<var>radius</var>
+</h3>
+Draws a circle on the screen. The <code>Circle</code> command is
+followed by the x, y, and z coordinates of the circle center and the
+radius of the circle.  The circle is always drawn parallel to the
+screen and will thus always appear as a circle.
+
+<h3><code>Fill</code> &nbsp;&nbsp;&nbsp;
+<var>x</var> &nbsp;&nbsp;
+<var>y</var> &nbsp;&nbsp;
+<var>z</var>
+</h3>
+The <code>Fill</code> command performs a 4-connected flood fill on the
+screen starting at the projection of the given seed point. If the
+seed point is not on the screen, no fill is done.  The current
+drawing color is used as the fill color.
+
+<h3><code>Cone</code> &nbsp;&nbsp;&nbsp;
+<var>height</var> &nbsp;&nbsp;
+<var>radius</var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+Renders a cone with its base in the xy plane, centered at the origin.
+The height is in the positive z direction.   The angle theta is the
+angular extent mentioned above.
+
+<h3><code>Cube</code></h3>
+Takes no arguments.  Renders an axis aligned cube extending from
+-1 to +1 in x, y, and z.
+
+<h3><code>Curve</code></h3>
+Followed by the curve type in quotes and the vertex type.
+Remaining arguments depend on the type of the curve.
+Current curve types include
+<dl>
+  <dt><code>Bezier</code></dt><dd> After the vertex type is the degree
+    of the curve.  The control point vertices follow.  If the degree
+    of the curve is n, there should be exactly n+1 control points.</dd> 
+</dl>
+
+<h4>Example</h4>
+<pre>      Curve "Bezier" "PC"
+      3 # cubic curve with color - x y z  r g b
+      -0.5 0.0 -1.0 1.0 0.0 0.0  # Red
+      -0.5 0.5 -1.0 1.0 1.0 0.0  # Yellow
+      0.5 -0.5 -1.0 1.0 1.0 1.0  # White
+      0.5  0.0 -1.0 0.0 1.0 0.0  # Green
+    </pre>
+
+<h3><code>Cylinder</code> &nbsp;&nbsp;&nbsp;
+<var>radius</var> &nbsp;&nbsp;
+<var>zmin</var> &nbsp;&nbsp;
+<var>zmax</var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+Produces a cylinder centered around the z axis with the given radius,
+extending from zmin to zmax along the axis. The zmin value should be
+less than the zmax value.  Theta is the angular extent of the
+cylinder, as described above.
+
+<h3><code>Disk</code> &nbsp;&nbsp;&nbsp;
+<var>height</var> &nbsp;&nbsp;
+<var>radius</var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+Produces a disk of the given radius parallel to the xy plane and
+centered around the z axis at the given height.  Theta is the angular
+extent of the disk, as described above.  The surface normal of the
+disk is outward in the positive z direction.
+
+<h3><code>Hyperboloid</code> &nbsp;&nbsp;&nbsp;
+<var>x<sub>1</sub></var> &nbsp;&nbsp;
+<var>y<sub>1</sub></var> &nbsp;&nbsp;
+<var>z<sub>1</sub></var> &nbsp;&nbsp;
+<var>x<sub>2</sub></var> &nbsp;&nbsp;
+<var>y<sub>2</sub></var> &nbsp;&nbsp;
+<var>z<sub>2</sub></var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+
+Produces a hyperboloid of one sheet centered around the z axis by
+sweeping a line with the given endpoints around the z axis.  Theta
+gives the angular extent of the sweep, as described above.
+
+<h3><code>Paraboloid</code> &nbsp;&nbsp;&nbsp;
+<var>radius</var> &nbsp;&nbsp;
+<var>zmin</var> &nbsp;&nbsp;
+<var>zmax</var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+Produces a paraboloid of the given radius and extents in z centered
+about the z axis.  Theta is the angular extent, described above.
+
+
+<h3><code>Patch</code></h3>
+Followed by the patch type in quotes and the vertex type.
+Remaining arguments depend on the type of the patch.
+Current patch types include
+<dl>
+  <dt><code>Bezier</code></dt><dd> After the vertex type are two
+    integers, the degrees of the patch in the u and v directions
+    respectively.  The control point vertices follow.  If the degree
+    of the patch is m by n, there should be exactly (m+1)(n+1) control
+    points.</dd>
+</dl>
+<h4>Example</h4>
+<pre>      Patch "Bezier" "PC"
+      2 2 # biquadratic patch with color - x y z  r g b
+      -0.5 -0.5 -1.0 1.0 0.0 0.0  # Red
+       0.0 -0.5 -0.5 1.0 1.0 0.0  # Yellow
+       0.5 -0.5 -1.0 1.0 1.0 1.0  # White
+       
+      -0.7  0.0  0.0 1.0 0.0 1.0  # Magenta
+       0.0  0.2 -1.0 0.5 0.5 0.5  # Gray
+       0.7  0.0  0.0 0.0 1.0 0.0  # Green
+
+      -0.5  0.5  0.0 1.0 1.0 1.0  # White
+       0.1  0.7  1.0 1.0 1.0 0.0  # Yellow
+       0.5  0.5 -1.0 0.0 1.0 1.0  # Cyan
+    </pre>
+
+<h3><code>PolySet</code></h3>
+Followed by a vertex type, then the number of vertices and faces in
+the object.  The given attributes follow for each vertex in the order
+specified in the vertex type. After the vertex list, a list of faces
+follows.  Each face is given as a list of indices into the list of
+attributed vertices.  The list of vertices for a given face is
+followed by the value -1 to indicate the end of the vertices for that
+face.  The number of vertices per face is arbitrary and may change
+from face to face.  The vertices of any given face should be traced in
+a counter-clockwise order as seen from the exterior of the object.  
+
+<h4>Example</h4>
+<pre>      PolySet "PC"
+      8 6 # Color cube - x y z  r g b
+       -1.0 -1.0 -1.0 0.0 0.0 0.0  # Black
+        1.0 -1.0 -1.0 1.0 0.0 0.0  # Red
+       -1.0  1.0 -1.0 0.0 1.0 0.0  # Green
+        1.0  1.0 -1.0 1.0 1.0 0.0  # Yellow
+       -1.0 -1.0  1.0 0.0 0.0 1.0  # Blue
+        1.0 -1.0  1.0 1.0 0.0 1.0  # Magenta
+       -1.0  1.0  1.0 0.0 1.0 1.0  # Cyan
+        1.0  1.0  1.0 1.0 1.0 1.0  # White
+
+      0 2 3 1 -1 # Red Green Yellow face
+      0 1 5 4 -1 # Red Blue Magenta face
+      1 3 7 5 -1 # Red Yellow Magenta face
+      3 2 6 7 -1 # Yellow Green Cyan face
+      2 0 4 6 -1 # Green Blue Cyan face
+      4 5 7 6 -1 # Blue Magenta Cyan face
+</pre>
+
+<h3><code>Sphere</code> &nbsp;&nbsp;&nbsp;
+<var>radius</var> &nbsp;&nbsp;
+<var>zmin</var> &nbsp;&nbsp;
+<var>zmax</var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+Renders a spherical section centered about the origin using the given
+radius and extents. The value of zmin should be less than zmax.  If
+zmin and zmax are outside the radius of the sphere, they are
+effectively replaced with -radius and radius, respectively.
+
+<h3><code>SqSphere</code> &nbsp;&nbsp;&nbsp;
+<var>radius</var> &nbsp;&nbsp;
+<var>n</var>&nbsp;&nbsp;
+<var>e</var>&nbsp;&nbsp;
+<var>zmin</var> &nbsp;&nbsp;
+<var>zmax</var> &nbsp;&nbsp;
+<var>theta</var>
+</h3>
+Renders a superquadric spherical section centered about the origin
+using the given radius, north and east parameters, and extents.  The
+north parameter is the power used on the latitude; the east, on the
+longitude.  Values of 1.0 produce circular cross sections.  Values of
+0.0 produce square cross sections.  Values of 2.0 produce diamond
+cross sections. The value of zmin should be less than zmax.  If zmin
+and zmax are outside the radius of the superquadric sphere, they are
+effectively replaced with -radius and radius, respectively.
+
+<h3><code>SqTorus</code> &nbsp;&nbsp;&nbsp;
+<var>radius1</var> &nbsp;&nbsp;
+<var>radius2</var> &nbsp;&nbsp;
+<var>n</var> &nbsp;&nbsp;
+<var>e</var> &nbsp;&nbsp;
+<var>phimin</var> &nbsp;&nbsp;
+<var>phimax</var> &nbsp;&nbsp;
+<var>thetamax</var>
+</h3>
+Renders a superquadric torus (doughnut shape) parallel to the xy plane
+centered about the origin.  Radius1 is the radius of the major circle
+shape of the torus.  It is the radius of the center of the toroidal
+cross section.  Radius2 is the radius of the small circle.  n and e
+are the values of the exponents used in the superquadric sin and cos
+formulas.  Values of 0.0 produce square cross sections.  Values of 1.0
+produce circular cross sections. Values of 2.0 produce diamond cross
+sections. Phi varies between phimin and phimax.  Theta varies between
+0 and thetamax.  The bounds on phi and theta represent geometrical
+bounds and must likely be converted to parameter bounds.
+
+<h3><code>Subdivision</code></h3>
+Followed by the subdivision surface type in quotes and the vertex
+type. Remaining arguments depend on the type of subdivision surface.
+Current subdivision surface types include
+<dl>
+  <dt><code>Catmull-Clark</code></dt><dd> After the vertex type are
+    three integers, the number of vertices, number of faces, and
+    number of creases in the surface.  The control point vertices
+    follow.  These are followed by the list of vertex indices for each
+    face, listed counter-clockwise as seen from the outside with each
+    face vertex list terminated by a -1, exactly as used in
+    <code>PolySet</code>. Each crease list is followed immediately by
+    a equally sized list of sharpness values for the crease.</dd>
+  </dl>
+
+<h3><code>Torus</code> &nbsp;&nbsp;&nbsp;
+<var>radius1</var> &nbsp;&nbsp;
+<var>radius2</var> &nbsp;&nbsp;
+<var>phimin</var> &nbsp;&nbsp;
+<var>phimax</var> &nbsp;&nbsp;
+<var>thetamax</var>
+</h3>
+Renders a torus (doughnut shape) parallel to the xy plane centered
+about the origin.  Radius1 is the radius of the major circle shape of
+the torus.  It is the radius of the center of the toroidal cross
+section.  Radius2 is the radius of the small circle.  Phi varies
+between phimin and phimax.  Theta varies between 0 and thetamax.
+Unfortunately, the best way to describe this one is with a picture or
+formulas: 
+<ul>
+  <li>For a given theta and phi,</li>
+  <li>r = radius2 * cos(phi)</li>
+  <li>z = radius2 * sin(phi)</li>
+  <li>x = (radius1 + r) * cos(theta)</li>
+  <li>y = (radius1 + r) * sin(theta)</li>
+</ul>
+
+
+
+<h3><code>Tube</code> &nbsp;&nbsp;&nbsp;
+<var>x<sub>1</sub></var> &nbsp;&nbsp;
+<var>y<sub>1</sub></var> &nbsp;&nbsp;
+<var>z<sub>1</sub></var> &nbsp;&nbsp;
+<var>x<sub>2</sub></var> &nbsp;&nbsp;
+<var>y<sub>2</sub></var> &nbsp;&nbsp;
+<var>z<sub>2</sub></var> &nbsp;&nbsp;
+<var>radius</var>
+</h3>
+Produces a cylinder of given radius between the two given points.
+This is strictly a convenience primitive.  There is nothing here that
+can't be done with a <code>Cylinder</code> and the proper
+transformations.
+
+
+<h2>Geometric Transformations</h2>
+All points are passed through a geometric transformation
+pipeline.  Various transformations can be pushed on the front of
+the pipeline.  The order in which various transformations occur is
+very important.  Because the transformations are placed on the
+front of the transformation pipeline, they appear in the scene
+file in reverse order, i.e. later transformations in the pipeline
+occur earlier in the file.
+
+<h3><code>Rotate</code>&nbsp;&nbsp;&nbsp;
+<var>axis</var> &nbsp;&nbsp;
+<var>angle</var>
+</h3>
+This command is followed by a principal axis, in quotes, around which
+the rotation occurs.  Valid values are <code>"X"</code>,
+<code>"Y"</code>, and <code>"Z"</code>.  Positive
+rotation around the axis is seen as counter clockwise around the axis
+when looking down the positive axis towards the origin.  The angle of
+the rotation is given in degrees.
+
+<h3><code>Scale</code> &nbsp;&nbsp;&nbsp;
+<var>s<sub>x</sub></var> &nbsp;&nbsp;
+<var>s<sub>y</sub></var> &nbsp;&nbsp;
+<var>s<sub>z</sub></var>
+</h3>
+This command scales the x, y, and z coordinates of points by the
+values given for s<sub>x</sub>, s<sub>y</sub>, and s<sub>z</sub>
+respectively.
+
+<h3><code>Translate</code> &nbsp;&nbsp;&nbsp;
+<var>t<sub>x</sub></var> &nbsp;&nbsp;
+<var>t<sub>y</sub></var> &nbsp;&nbsp;
+<var>t<sub>z</sub></var>
+</h3>
+Translates points by the given translation values in x, y, and z.
+
+<h3><code>XformPush</code></h3>
+Pushes the current transformation from object coordinates to world
+coordinates onto a stack.  This preserves the current transformation
+state, which may be changed by subsequent geometric transformations.
+The current transformation is implicitly pushed upon the stack before
+every <code>ObjectInstance</code> command.
+
+<h3><code>XformPop</code></h3>
+Pops a transformation from the transformation stack and places it as
+the current transformation from object to world coordinates.  The
+current transformation is implicitly popped off the stack after every
+<code>ObjectInstance</code> command. 
+
+<h2>Lighting</h2>
+The lighting commands allow lights to be placed in the scene which
+affect the appearance of scene objects. There are currently three
+types of lights, an ambient light, distant lights, and point light
+sources.  Each light has a color and an intensity.  Internally, each
+color component is multiplied by the intensity to obtain a color
+component intensity which is used in the lighting calculations.  In
+the RD format file, the color and intensity are kept separate for ease
+in manipulating light intensity while leaving light color constant.
+
+<p>Currently there is no saved lighting state. Any light placed in the
+scene description is used from that point on in the lighting
+calculations.  All lighting information is lost at the end of a frame
+block or world block.  Lights can not be set outside a world block or
+frame block.  This implies that lights are not cumulative between the
+frames of an animation, but they must be set in each frame.  Lights
+can not be turned off or removed from the scene.</p>
+
+<h3><code>AmbientLight</code> &nbsp;&nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var> &nbsp;&nbsp;
+<var>I</var> &nbsp;&nbsp;
+</h3>
+Specifies an ambient light, which comes from everywhere in a scene.
+The parameters are the color of the light and its intensity.  The
+color values are in the range 0.0-1.0 and the intensity can be any
+non-negative value.
+Used primarily to keep shadow areas from becoming too dark.  There can
+only be one ambient light in the scene.  The default ambient light is
+white with an intensity of 1.0.
+
+<h3><code>FarLight</code> &nbsp;&nbsp;&nbsp;
+<var>l<sub>x</sub></var> &nbsp;&nbsp;
+<var>l<sub>y</sub></var> &nbsp;&nbsp;
+<var>l<sub>z</sub></var> &nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var> &nbsp;&nbsp;
+<var>I</var> &nbsp;&nbsp;
+</h3>
+This command describes a distant light source, one whose intensity
+does not fall off with distance.  The first three command arguments
+describe the x, y, and z components of the light vector, L, the
+direction the light shines. The remaining arguments describe the color and
+intensity of the light.
+
+<p>There may be multiple <code>FarLight</code>s in a scene.  The
+maximum number is not specified but is implementation dependent.  The
+default number of <code>FarLight</code>s in a scene is zero.</p>
+
+<h3><code>PointLight</code> &nbsp;&nbsp;&nbsp;
+<var>p<sub>x</sub></var> &nbsp;&nbsp;
+<var>p<sub>y</sub></var> &nbsp;&nbsp;
+<var>p<sub>z</sub></var> &nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var> &nbsp;&nbsp;
+<var>I</var> &nbsp;&nbsp;
+</h3>
+This command describes a point light source, one whose intensity falls
+off with the square of the distance.  The first three command
+arguments describe the x, y, and z coordinates of the light position.
+The remaining arguments describe the color and intensity of the light.
+
+<p>There may be multiple <code>PointLight</code>s in a scene. The
+maximum number is not specified but is implementation dependent.  The
+default number of <code>PointLight</code>s in a scene is zero.</p>
+
+<h3><code>ConeLight</code> &nbsp;&nbsp;&nbsp;
+<var>p<sub>x</sub></var> &nbsp;&nbsp;
+<var>p<sub>y</sub></var> &nbsp;&nbsp;
+<var>p<sub>z</sub></var> &nbsp;&nbsp;
+<var>a<sub>x</sub></var> &nbsp;&nbsp;
+<var>a<sub>y</sub></var> &nbsp;&nbsp;
+<var>a<sub>z</sub></var> &nbsp;&nbsp;
+<var>theta<sub>min</sub></var> &nbsp;&nbsp;
+<var>theta<sub>max</sub></var> &nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var> &nbsp;&nbsp;
+<var>I</var> &nbsp;&nbsp;
+</h3>
+
+This command describes a cone light source, one whose intensity falls
+off with the square of the distance.  The first three command
+arguments describe the x, y, and z coordinates of the light
+position. The next three arguments describe a point that the light is
+directed at.
+
+<p>The next two arguments describe the shape of the light.
+The angles (in degrees) describe the full angular extent of two cones
+with apices at the source and centered about the viewing direction.
+The intensity of the light is 0 outside the cone described by
+<var>theta<sub>max</sub></var>, and gradually transitions to full
+intensity inside the inner cone.  The details of the transition
+between no intensity and full intensity are implementation dependent.</p>
+
+<p>The remaining arguments describe the color and intensity of the light.</p>
+
+<h2>Surface Attributes</h2>
+Objects in the scene can be assigned various surface attributes which
+affect the appearance of the object.  The most important of these is
+the surface color, which is set through the <code>Color</code> command
+and is discussed in the <a href="https://graphics.cs.niu.edu/csci490j/rd_doc.html#SecDrawingAttributes">Drawing
+Attributes</a> section.  Other attributes are used to calculate how
+the lights described in the <a href="https://graphics.cs.niu.edu/csci490j/rd_doc.html#SecLighting">Lighting</a> section
+above interact with the object.
+
+<p>An extremely important surface attributes is the surface shader,
+a function which calculates the final color to be returned to the
+output device based on the other surface attributes and lights.  There
+are several built-in shaders.  Not all shaders use all of the other
+attributes used to describe the surface.</p>
+
+<p>Currently there is no saved surface attribute state.  Any
+attributes changed inside an <code>ObjectInstance</code> remain in
+effect upon return from the instance.  Attribute values hold between
+frames of an animation as well.  This implies that surface attributes
+can be set outside a frame block or world block.</p>
+
+<h3><code>Ka</code></h3>
+The ambient coefficient of the surface.  Has a value in the range
+0.0-1.0.  Describes the fraction of the ambient light returned by the
+surface.  The default value is 1.0.
+
+<h3><code>Kd</code></h3>
+The diffuse coefficient of the surface.  Has a value in the range
+0.0-1.0.  Describes the fraction of the diffuse light returned by the
+surface.  The default value is 1.0.  A good heuristic for this value
+is to set it equal to <code>Ka</code>.
+
+<h3><code>Ks</code></h3>
+The specular coefficient of the surface.  Has a value in the range
+0.0-1.0.  Describes the fraction of the diffuse light returned by the
+surface.  The default value is 0.0.  A good heuristic for this value
+is to set it equal to <code>1.0 - Kd</code>.
+
+<h3><code>Specular</code> &nbsp;&nbsp;&nbsp;
+<var>r</var> &nbsp;&nbsp;
+<var>g</var> &nbsp;&nbsp;
+<var>b</var> &nbsp;&nbsp;
+<var>n<sub>s</sub></var>
+</h3>
+Gives the specular color and specular exponent of the object.  The
+color components are in the range 0.0-1.0.  The specular exponent can
+be any positive non-zero value. In the
+real world, the color highlights of an object may be completely
+independent of the base color of the object.  To simulate many
+plastics, this color should be white.  To simulate metal, this color
+should be the same as the base color of the object.
+
+<p>The specular exponent determines the size of the highlights.  A
+large exponent produces small, tight highlights.  A small exponent
+produces large, diffuse highlights.</p>
+
+<p> The default specular color is white (1.0 1.0 1.0) and the default
+specular exponent is 10.</p>
+
+<h3><code>Surface</code> &nbsp;&nbsp;&nbsp;
+<var>shader</var></h3>
+
+This command sets the surface shading function used to render all
+subsequent objects.  The shader attribute is a quote enclosed string.
+Valid shader values include <code>"matte"</code>,
+<code>"metal"</code>, and <code>"plastic"</code>.
+These shaders are described below.  The default surface shader is
+<code>"matte"</code>. In the formulas below, C<sub>s</sub>
+is the surface color; L<sub>a</sub> is the ambient light intensity;
+I<sub>d</sub> is the reflected diffuse intensity, obtained from the
+surface normal and the <code>FarLight</code> intensities and
+directions and the <code>PointLight</code> intensities and positions;
+C<sub>spec</sub> the specular surface color; I<sub>s</sub> is the
+specular reflection intensity determined by the surface normal,
+viewing vector, specular exponent, and the <code>FarLight</code> and
+<code>PointLight</code> intensities and geometries.
+
+<dl>
+  <dt><code>"matte"</code></dt>
+  <dd> Produces diffuse or matte effects.  There is no specular
+    contribution in this shader. The formula for computing
+    the sample pixel intensity is
+    <br>C<sub>s</sub> (<code>Ka</code> *  L<sub>a</sub> +
+    <code>Kd</code> * I<sub>d</sub>)
+  </dd>
+  <dt><code>"metal"</code></dt>
+  <dd> Produces metallic reflection effects.  There is no diffuse
+    reflection contribution in this shader. The formula for
+    computing the sample pixel intensity is
+    <br>C<sub>s</sub> (<code>Ka</code> * L<sub>a</sub> +
+    <code>Ks</code> * I<sub>s</sub>)
+  </dd>
+  <dt><code>"plastic"</code></dt>
+  <dd> Produces general diffuse and specular reflection effects.  With
+  the right parameters, can simulate both <code>matte</code> and
+    <code>metal</code> shaders.  The formula for computing the sample
+    pixel intensity is
+    <br>C<sub>s</sub> (<code>Ka</code> * L<sub>a</sub> +
+    <code>Kd</code> * I<sub>d</sub>) + C<sub>spec</sub> *
+    <code>Ks</code> * I<sub>s</sub>
+  </dd>
+  <dt><code>"painted plastic"</code></dt>
+  <dd> Produces general diffuse and specular reflection effects.  Uses
+    texture mapping.  Identical to the <code>plastic</code> surface
+    shader except that the surface color C<sub>s</sub> comes from a
+    texture map.  The formula for computing the sample
+    pixel intensity is
+    <br>C<sub>s<sub>text</sub></sub> (<code>Ka</code> * L<sub>a</sub> +
+    <code>Kd</code> * I<sub>d</sub>) + C<sub>spec</sub> *
+    <code>Ks</code> * I<sub>s</sub><br>
+    The specular surface color is not adjustable by a texture map with
+    this shader.
+  </dd>
+</dl>
+
+<h2>Attribute Mapping</h2>
+Various parameters in the pixel shading calculation can be altered
+through the use of <em>attribute maps</em>.  Attribute maps allow
+shading paramteters to be changed frequently between object vertices.
+This can give the appearance of a great deal of model complexity where
+in fact, the geometrical complexity may be small.
+
+<p>The most common type of attribute map is a <em>texture map</em>
+which changes the surface color.  Texture maps have the appearance of
+pasting an image on the surface. Another common map is the <em>bump
+map</em> which alters the surface normal used in lighting
+calculations.  A bump map makes the surface appear bumpy.</p>
+
+<p> Many of the commands below take a string indicating map type.  Map
+type values are reserved and can <em>not</em> be used as map labels.
+Valid map type values include <code>"none"</code>,
+<code>"texture"</code>, and
+<code>"bump"</code>.</p>
+
+<h3><code>MapLoad</code> &nbsp;&nbsp;&nbsp;
+<var>filename</var> &nbsp;&nbsp;
+<var>label</var> &nbsp;&nbsp;
+</h3>
+This command takes two string arguments.  Loads a PBMplus image file
+into memory to be used as an attribute map.  A hierarchical mipmap is
+created of the map. The label is used to refer to the texture in later
+rendering.  The label <code>"none"</code> is reserved and may
+not be assigned as a label.
+
+<h3><code>Map</code> &nbsp;&nbsp;&nbsp;
+<var>type</var> &nbsp;&nbsp;
+<var>label</var>
+</h3>
+Takes two string arguments.  Makes the map referred to by the label
+the current map used for rendering objects.  Only one map of a given type is
+considered active at a time. If the label
+<code>"none"</code> is used, then no mapping is
+performed for that attribute type.
+
+<h3><code>MapSample</code> &nbsp;&nbsp;&nbsp;
+<var>type</var> &nbsp;&nbsp;
+<var>intra_level</var> &nbsp;&nbsp;
+<var>inter_level</var>
+</h3>
+This command takes three string arguments which determine the type of
+sampling used in mapping.  The first arugment determines the map type
+that will be affected by these sampling commands.  The second argument
+determines how sampling is performed between pixels on the same level
+of a mipmap.  The third argument determines how sampling is performed
+between levels of a mipmap.  The allowable values for the intra_level
+and inter_level arguments are
+<dl>
+  <dt><code>"nearest"</code></dt><dd> - nearest neighbor
+  sampling.</dd>
+  <dt><code>"linear"</code></dt><dd> - linear interpolation</dd>
+</dl>
+
+The combination <code>"texture" "linear"
+"nearest"</code> represents standard bilinear texture
+mapping.  The combination <code>"texture" "linear"
+"linear"</code> represents standard trilinear texture
+mapping.
+
+<h3><code>MapBound</code> &nbsp;&nbsp;&nbsp;
+<var>type</var> &nbsp;&nbsp;
+<var>s<sub>min</sub></var> &nbsp;&nbsp;
+<var>t<sub>min</sub></var> &nbsp;&nbsp;
+<var>s<sub>max</sub></var> &nbsp;&nbsp;
+<var>t<sub>max</sub></var>
+</h3>
+Takes a string and four floating point arguments.  This command is
+used to help set map coordinate bounds on primitives where map
+coordinates are not explicitly specified.  These include spheres,
+cones, and cylinders.  By default the map coordinate bounds are from 0
+to 1 in s and t. The bounds set remain in force until explicitly
+reset.
+
+<h3><code>MapBorder</code> &nbsp;&nbsp;&nbsp;
+<var>type</var> &nbsp;&nbsp;
+<var>horizontal</var> &nbsp;&nbsp;
+<var>vertical</var>
+</h3>
+Takes three string arguments.  This command determines how maps are
+sampled at the borders.  This is especially noticeable when
+interpolation is done at the edges.  Allowed values are <dl>
+<dt><code>"none"</code></dt><dd>treats values outside the
+map as having a constant value.  For texture maps this is the same as
+having the current surface color.  This is useful for a gradual
+texture edge falloff at the edge of a polygon.</dd>
+<dt><code>"clamp"</code></dt><dd> values outside the map are
+clamped to the value of the closest edge.  This is best for adjacent
+tiles.</dd>
+<dt><code>"repeat"</code></dt><dd> considers the map to be a
+periodically repeating tile.  Values that leave one edge of the map
+are considered to start again on the opposite side.  This is best for
+maps that wrap all the way around an object.</dd>
+</dl>
+
+The method used to handle the borders is independent in both the
+horizontal and vertical map directions.
+
+<hr>
+<!-- hhmts start -->Last modified: Mon Jan 19 22:36:21 CST 2009 <!-- hhmts end -->
+ 
+
+</body></html>
