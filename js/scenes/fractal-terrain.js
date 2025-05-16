@@ -183,10 +183,9 @@ function FractalTerrainViewer(containerId, controlsId) {
   // Scene setup
   this.scene = new THREE.Scene();
   this.scene.background = new THREE.Color(0x050512);
-  
-  // Camera setup
+    // Camera setup
   this.camera = new THREE.PerspectiveCamera(60, this.container.offsetWidth / this.container.offsetHeight, 0.1, 1000);
-  this.camera.position.set(0, 1, 1.5);
+  this.camera.position.set(0, -1, 1.5); // Position camera below terrain for bottom-up view
   this.camera.lookAt(0, 0, 0);
   
   // Renderer
@@ -409,10 +408,9 @@ FractalTerrainViewer.prototype.generateTerrain = function() {
   const colors = [];
   const normals = [];
   const indices = [];
-  
-  // Scale factor for terrain
+    // Scale factor for terrain
   const scaleFactor = 2.0;
-  const heightScale = 0.8;
+  const heightScale = p.sigma; // Use the sigma parameter directly as height scale
   
   // Fill position and color data
   for (let i = 0; i < size; i++) {

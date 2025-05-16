@@ -60,9 +60,8 @@ x86/
 cs630.h
 Makefile
 bezier.cpp
-# HTML files (except documentation)
-demo.html
-examples.html
+# HTML files
+*.html
 
 # RD specific files
 t7d2_1s852.rd
