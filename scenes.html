@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Scenes Showcase</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/scenes.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="brand"><a href="index.html">Robby Williams</a></div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="blackjack-godot.html">Godot</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <h1>3D Scenes Showcase</h1>
+    <div class="tabs">
+      <button class="tab-link active" data-tab="superquadrics">Superquadrics</button>
+      <button class="tab-link" data-tab="neutron">Neutron Simulation</button>
+      <button class="tab-link" data-tab="terrain">Fractal Terrain</button>
+    </div>
+    <div class="tab-content" id="superquadrics">
+      <div class="scene-container" id="superquadrics-canvas"></div>
+      <div class="controls-panel" id="superquadrics-controls">
+        <!-- Controls will be added by the SuperquadricsViewer -->
+      </div>
+      <div class="info-panel">
+        <h2>Superquadrics</h2>
+        <p>Explore parametric superquadric shapes. Adjust parameters to see how the geometry changes.</p>
+        <a href="https://github.com/robalobalubob/portfolio/blob/main/js/scenes/superquadrics.js" target="_blank">View Source Code</a>
+        <button class="capture-preview" data-scene="superquadrics">Capture Preview Image</button>
+      </div>
+    </div>
+    <div class="tab-content" id="neutron" style="display:none;">
+      <div class="scene-container" id="neutron-canvas"></div>
+      <div class="controls-panel" id="neutron-controls">
+        <!-- Controls will be added by the NeutronSimViewer -->
+      </div>
+      <div class="info-panel">
+        <h2>Neutron Simulation</h2>
+        <p>Visualize neutron paths in a simulated reactor. Change simulation parameters and observe the results.</p>
+        <a href="https://github.com/robalobalubob/portfolio/blob/main/js/scenes/neutron-sim.js" target="_blank">View Source Code</a>
+        <button class="capture-preview" data-scene="neutron">Capture Preview Image</button>
+      </div>
+    </div>
+    <div class="tab-content" id="terrain" style="display:none;">
+      <div class="scene-container" id="terrain-canvas"></div>
+      <div class="controls-panel" id="terrain-controls">
+        <!-- Controls will be added by the FractalTerrainViewer -->
+      </div>
+      <div class="info-panel">
+        <h2>Fractal Terrain</h2>
+        <p>Generate and explore fractal terrains using the diamond-square algorithm. Adjust roughness and other parameters.</p>
+        <a href="https://github.com/robalobalubob/portfolio/blob/main/js/scenes/fractal-terrain.js" target="_blank">View Source Code</a>
+        <button class="capture-preview" data-scene="terrain">Capture Preview Image</button>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <div class="contact-info">
+      <span>Email: <a href="mailto:rob.j.will7@gmail.com">rob.j.will7@gmail.com</a></span>
+      <span> | </span>
+      <a href="https://github.com/robalobalubob" target="_blank">GitHub</a>
+      <span> | </span>
+      <a href="https://www.linkedin.com/in/robby-williams-b597b21b9/" target="_blank">LinkedIn</a>
+    </div>
+    <div class="copyright">&copy; 2025 Robby Williams</div>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/scenes/rd-parser.js"></script>
+  <script src="js/scenes/superquadrics.js"></script>
+  <script src="js/scenes/neutron-sim.js"></script>
+  <script src="js/scenes/fractal-terrain.js"></script>
+</body>
+</html>
