@@ -4,7 +4,8 @@
 const viewers = {
   superquadrics: null,
   neutron: null,
-  terrain: null
+  terrain: null,
+  planet: null
 };
 
 // Store globally for visibility change handler
@@ -59,6 +60,20 @@ function initViewer(tab) {
       }
     } catch (e) { 
       console.error('[Init] Error initializing FractalTerrainViewer:', e); 
+    }
+  } else if (tab === 'planet') {
+    if (viewers.planet) {
+      console.log('[Common] Planet viewer already initialized');
+      return;
+    }
+    try {
+      if (window.PerlinPlanetViewer) {
+        console.log('[Common] Creating new PerlinPlanetViewer');
+        viewers.planet = new window.PerlinPlanetViewer('planet-canvas', 'planet-controls');
+        window._sceneViewers.push(viewers.planet);
+      }
+    } catch (e) { 
+      console.error('[Init] Error initializing PerlinPlanetViewer:', e); 
     }
   }
 }
