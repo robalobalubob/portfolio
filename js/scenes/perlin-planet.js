@@ -189,13 +189,13 @@ class PerlinPlanetViewer {
     };
 
     createSeedControl('seed', 'Planet Seed', this.params.seed);
-    createSlider('noiseScale', 'Noise Scale', 0.1, 5.0, 0.1, this.params.noiseScale);
-    createSlider('octaves', 'Octaves', 1, 8, 1, this.params.octaves);
-    createSlider('persistence', 'Persistence', 0.1, 1.0, 0.05, this.params.persistence);
-    createSlider('lacunarity', 'Lacunarity', 1.5, 3.5, 0.1, this.params.lacunarity);
-    createSlider('strength', 'Strength', 0.05, 1.0, 0.01, this.params.strength);
-    createSlider('oceanLevel', 'Ocean Level', 0.0, 0.5, 0.01, this.params.oceanLevel);
-    createCheckbox('showWireframe', 'Wireframe', this.params.showWireframe);
+    createSlider('noiseScale', 'Noise Scale ', 0.1, 5.0, 0.1, this.params.noiseScale);
+    createSlider('octaves', 'Octaves ', 1, 8, 1, this.params.octaves);
+    createSlider('persistence', 'Persistence ', 0.1, 1.0, 0.05, this.params.persistence);
+    createSlider('lacunarity', 'Lacunarity ', 1.5, 3.5, 0.1, this.params.lacunarity);
+    createSlider('strength', 'Strength ', 0.05, 1.0, 0.01, this.params.strength);
+    createSlider('oceanLevel', 'Ocean Level ', 0.0, 0.5, 0.01, this.params.oceanLevel);
+    createCheckbox('showWireframe', 'Wireframe ', this.params.showWireframe);
   }
 
   generatePlanet() {
